@@ -6,7 +6,7 @@ from pyspark.streaming.kafka import KafkaUtils
 from pyspark import SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql import Row
-
+from pyspark.sql.functions import explode
 
 """IMPORTANT
 MUST use class paths when using spark-submit
@@ -59,10 +59,11 @@ def writeTransactionRecords(time, rdd):
 		transactionFinal = transaction.select("customerID","propertyID","posID","posTransactionID","deviceID","cartID","appID","transactionType","transactionTime") #Get in the correct order before inserting
 		transactionFinal.write.jdbc("jdbc:mysql://localhost/crm", "CustomerTransactions", properties=connectionProperties)
 		#Products are nested in JSON.  Handle them separately
-		productLines = transaction.map(lambda x: x[1])
-		productsFinal = select("transaction.propertyID","transaction.posID","transaction.posTransactionID","productID","qty","price","promoCode","discountAmount","transaction.transactionTime")
-		productsFinal.show()
-		#productsFinal.write.jdbc("jdbc:mysql://localhost/crm", "CustomerTransactionProducts", properties=connectionProperties)
+		#products = transaction.select("customerID","property
+		#productLines = transaction.map(lambda x: x[1])
+		products = transaction.select("propertyID","posID","posTransactionID","transactionTime",explode("products").alias("product"))
+		productsFinal = products.select("propertyID","posID","posTransactionID","product.productID","product.price","product.qty","product.promoCode","product.discountAmount","transactionTime")
+		productsFinal.write.jdbc("jdbc:mysql://localhost/crm", "CustomerTransactionProducts", properties=connectionProperties)
 
 def writeInteractionRecords(time, rdd):
 	connectionProperties = getDBConnectionProps()
