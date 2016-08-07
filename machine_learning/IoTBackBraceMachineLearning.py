@@ -9,62 +9,49 @@ from pyspark.sql import SQLContext
 from time import time
 import MySQLConnection
 
-def create_labeled_point(line_split):
-    # leave_out = [0] since it is a label
-    clean_line_split = line_split[1:]
-    print(clean_line_split)
-
-    # convert label to binary label
-    #stooping = 1.0
-    #if line_split[0]=='0':
-    #    stooping = 0.0
-    
-    stooping = line_split[0]
-    
-    return LabeledPoint(stooping, array([float(x) for x in clean_line_split]))
+"""
+USAGE: $SPARK_HOME/bin/spark-submit --packages mysql:mysql-connector-java:5.1.28 IoTBackBraceMachineLearning.py
+"""
 
 sc = SparkContext()
 sqlContext = SQLContext(sc)
+#  Get username and password from file in this format: {"user":"yourusername","password":"yourpassword"}
 connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
+
+# Get training data from the database
 data = sqlContext.read.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties).selectExpr("deviceID","metricTypeID","uomID","positionID","actualPitch", "actualYaw")
-
-
 print "Train data size is {}".format(data.count())
 
+# Split data into training and test dataasets
 (trainingDataTable, testDataTable) = data.randomSplit([0.7, 0.3])
 
-trainingDataTable.show()
-testDataTable.show()
+# The model requires labeldPoints which is a row with label and a vector of features.
+def featurize(t):
+	return LabeledPoint(t.positionID, [t.actualPitch, t.actualYaw])
 
-
-def featurize(u):
-	return LabeledPoint(u.positionID, [u.actualPitch, u.actualYaw])
-
-#SQL results are RDDs so can be used directly in Mllib.
 trainingData = trainingDataTable.map(featurize)
 testData = testDataTable.map(featurize)
 
 # Train the classifier/Build the model
-t0 = time()
-
-#Decision Tree Model
-#model = DecisionTree.trainClassifier(
-#    trainingData,
-#    numClasses=3,
-#    categoricalFeaturesInfo={},
-#    impurity='gini',
-#    maxDepth=5,
-#    maxBins=32)
+startTime = time()
 
 #Random Forest Model
-model = RandomForest.trainClassifier(trainingData, numClasses=3, categoricalFeaturesInfo={},
-                                     numTrees=3, featureSubsetStrategy="auto",
-                                     impurity='gini', maxDepth=4, maxBins=32)
+model = RandomForest.trainClassifier(
+									trainingData, 
+									numClasses=3, 
+									categoricalFeaturesInfo={},
+                                    numTrees=6, 
+									featureSubsetStrategy="auto",
+                                    impurity='gini', 
+									maxDepth=4, 
+									maxBins=32
+									)
 
-tt = time() - t0
+elapsedTime = time() - startTime
 
-print "Classifier trained in {} seconds".format(round(tt,3))
-
+print "Classifier trained in {} seconds".format(round(elapsedTime,3))
+# Save the madel for use in evaluating readings
+model.save(sc,"models/IoTBackBraceRandomForest.model")
 
 # Evaluate model on test instances and compute test error
 predictions = model.predict(testData.map(lambda x: x.features))
@@ -73,3 +60,13 @@ testErr = labelsAndPredictions.filter(lambda (v, p): v != p).count() / float(tes
 print('Test Error = ' + str(testErr))
 print('Learned classification forest model:')
 print(model.toDebugString())
+
+loadedModel = RandomForestModel.load(sc, "models/IoTBackBraceRandomForest.model")
+
+for i in range(-50,10):
+    prediction = loadedModel.predict([i])
+    positions = {0 : "upright",
+           1 : "back bent",
+           2 : "stooped"
+    }
+    print str(i) + " => " + str(positions[prediction])
