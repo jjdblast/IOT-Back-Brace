@@ -3,7 +3,6 @@ from pyspark import SparkContext
 import urllib
 from pyspark.mllib.regression import LabeledPoint
 from numpy import array
-from pyspark.mllib.tree import DecisionTree, DecisionTreeModel
 from pyspark.mllib.tree import RandomForest, RandomForestModel
 from pyspark.sql import SQLContext
 from time import time

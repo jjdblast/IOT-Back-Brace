@@ -29,7 +29,7 @@ def sendSensorReadings(iterations):
 				"readingTime":"2016-07-25T15:45:07.12",
 				"metricTypeID":6,
 				"uomID":4,
-				"actual":{"y":18,"p":17.50,"r":120},
+				"actual":{"y":-30,"p":-45,"r":120},
 				"setPoints":{"y":25,"p":45,"r":100},
 				"prevAvg":{"y":15,"p":40,"r":88}
 			 }
@@ -60,7 +60,8 @@ def sendSensorTrainingReadings(iterations):
 		producer.send('LumbarSensorTrainingReadings', json.dumps(packet))
 		
 def main():
-	sendSensorTrainingReadings(500)
+	sendSensorReadings(5)
+	sendSensorTrainingReadings(5)
 
 
 if __name__ == "__main__":
