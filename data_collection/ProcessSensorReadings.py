@@ -6,8 +6,6 @@ from pyspark.sql import SQLContext
 from pyspark.sql.functions import explode
 from pyspark.ml.feature import VectorAssembler
 from pyspark.mllib.tree import RandomForest, RandomForestModel
-from pyspark.sql.functions import udf
-from pyspark.sql.types import DecimalType
 
 #custom modules
 import MySQLConnection
@@ -18,7 +16,8 @@ $SPARK_HOME/bin/spark-submit --packages org.apache.spark:spark-streaming-kafka_2
 """
 
 #loadedModel = RandomForestModel.load(sc, "../machine_learning/models/IoTBackBraceRandomForest.model")
-
+def getPrediction(features):
+	return loadedModel.predict(features)
 
 def writeLumbarReadings(time, rdd):
 	#try:
@@ -27,21 +26,37 @@ def writeLumbarReadings(time, rdd):
 	sqlContext = SQLContext(rdd.context)
 	if rdd.isEmpty() == False:
 		lumbarReadings = sqlContext.jsonRDD(rdd)
-		lumbarReadingsIntermediate = lumbarReadings.selectExpr("deviceID","readingTime","metricTypeID","uomID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll", "prevAvg.y AS prevAvgYaw","prevAvg.p AS prevAvgPitch","prevAvg.r AS prevAvgRoll")
+		lumbarReadingsIntermediate = lumbarReadings.selectExpr("readingID","deviceID","readingTime","metricTypeID","uomID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll", "prevAvg.y AS prevAvgYaw","prevAvg.p AS prevAvgPitch","prevAvg.r AS prevAvgRoll")
 		assembler = VectorAssembler(
-					inputCols=["actualYaw", "actualPitch", "actualRoll"],
+					inputCols=["actualPitch", "actualYaw", "actualRoll"], # Must be in same order as what was used to train the model
 					outputCol="features")
 		lumbarReadingsIntermediate = assembler.transform(lumbarReadingsIntermediate)
 
 		
 		predictions = loadedModel.predict(lumbarReadingsIntermediate.map(lambda x: x.features))
-		prediction= predictions.collect()
-		print(prediction)
-		#print(predictions)
+		predictionsDF = lumbarReadingsIntermediate.map(lambda x: x.readingID).zip(predictions).toDF(["readingID","positionID"])
+		combinedDF = lumbarReadingsIntermediate.join(predictionsDF, lumbarReadingsIntermediate.readingID == predictionsDF.readingID).drop(predictionsDF.readingID)
+		combinedDF.show()
+		#predictedReading = lumb
+		#readingsColumnList = lumbarReadings.columns
+		#readingsColumnList.insert(len(readingsColumnList), "classification")		
+		
+		#labelsAndPredictions = lumbarReadingsIntermediate.
+		#predictions2 = lumbarReadingsIntermediate.map(lambda x: (x.deviceID, Row(getPrediction(x.fetures))))
+		#predictions2.toDF().show()
+		#lumbarReadingsRdd = lumbarReadingsIntermediate.rdd.map(tuple)
+		#print(lumbarReadingsRdd)
+		#lumbarReadingsRddFinal = lumbarReadingsRdd.zip(predictions)
+		#lumbarReadingsRddFinal.collect()
+		#print(lumbarReadingsRddFinal)
+		#print(lumbarReadingsRddFinal)
+		#lumbarReadingsDf = lumbarReadingsRddFinal.toDF()
+		#lumbarReadingsDf.show()
+		
 		#labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: x["uomID,deviceID"]).zip(predictions).toDF()
 		#labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: x).zip(predictions).toDF()
-		labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: (x.deviceID,x.actualPitch)).zip(predictions).collect()#.toDF()
-		print(labelsAndPredictions)
+		#labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: (x.deviceID,x.actualPitch)).zip(predictions).collect()#.toDF()
+		#print(labelsAndPredictions)
 		#labelsAndPredictions.show()
 		#labelsAndPredictions.show()
 		#loadedModel = RandomForestModel.load(sc, "../machine_learning/models/IoTBackBraceRandomForest.model")

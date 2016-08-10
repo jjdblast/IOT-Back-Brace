@@ -4,7 +4,8 @@ from kafka import KafkaProducer
 import json
 import random
 import csv
-
+import uuid
+import datetime
 """
 Usage:  bin/spark-submit ~/spark/kafkaProducrerTest.py
 """
@@ -24,17 +25,26 @@ def getRandomPitch(min,max):
 
 
 def sendSensorReadings(iterations):
-	packet = {
+	for i in range(iterations):
+		readingID = str(uuid.uuid4())
+                pitch, position = getRandomPitch(-50,25)
+                if pitch <= -15:
+                        if pitch <= -25:
+                                position = 2.0
+                        elif pitch > -25:
+                                if pitch <= -15:
+                                        position = 1.0
+		packet = {
+				"readingID":readingID,
 				"deviceID":"5d681c54e66ff4a5654e55c6d5a5b54",
-				"readingTime":"2016-07-25T15:45:07.12",
+				"readingTime":datetime.datetime.now().isoformat(),
 				"metricTypeID":6,
 				"uomID":4,
-				"actual":{"y":-30,"p":-45,"r":120},
+				"actual":{"y":-30,"p":pitch,"r":120},
 				"setPoints":{"y":25,"p":45,"r":100},
 				"prevAvg":{"y":15,"p":40,"r":88}
 			 }
-
-	for i in range(iterations): 
+		print(packet) 
 		producer.send('LumbarSensorReadings', json.dumps(packet))
 
 def sendSensorTrainingReadings(iterations):

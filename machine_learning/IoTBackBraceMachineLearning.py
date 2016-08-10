@@ -18,7 +18,7 @@ sqlContext = SQLContext(sc)
 connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
 
 # Get training data from the database
-data = sqlContext.read.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties).selectExpr("deviceID","metricTypeID","uomID","positionID","actualPitch", "actualYaw")
+data = sqlContext.read.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties).selectExpr("deviceID","metricTypeID","uomID","positionID","actualPitch", "actualYaw", "actualRoll")
 print "Train data size is {}".format(data.count())
 
 # Split data into training and test dataasets
@@ -26,7 +26,7 @@ print "Train data size is {}".format(data.count())
 
 # The model requires labeldPoints which is a row with label and a vector of features.
 def featurize(t):
-	return LabeledPoint(t.positionID, [t.actualPitch, t.actualYaw])
+	return LabeledPoint(t.positionID, [t.actualPitch, t.actualYaw, t.actualRoll])
 
 trainingData = trainingDataTable.map(featurize)
 testData = testDataTable.map(featurize)
@@ -36,15 +36,15 @@ startTime = time()
 
 #Random Forest Model
 model = RandomForest.trainClassifier(
-									trainingData, 
-									numClasses=3, 
-									categoricalFeaturesInfo={},
-                                    numTrees=6, 
-									featureSubsetStrategy="auto",
-                                    impurity='gini', 
-									maxDepth=4, 
-									maxBins=32
-									)
+					trainingData, 
+					numClasses=3, 
+					categoricalFeaturesInfo={},
+                                    	numTrees=6, 
+					featureSubsetStrategy="auto",
+                                    	impurity='gini', 
+					maxDepth=4, 
+					maxBins=32
+				    )
 
 elapsedTime = time() - startTime
 
