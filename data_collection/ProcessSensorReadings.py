@@ -26,7 +26,7 @@ def writeLumbarReadings(time, rdd):
 	sqlContext = SQLContext(rdd.context)
 	if rdd.isEmpty() == False:
 		lumbarReadings = sqlContext.jsonRDD(rdd)
-		lumbarReadingsIntermediate = lumbarReadings.selectExpr("readingID","deviceID","readingTime","metricTypeID","uomID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll", "prevAvg.y AS prevAvgYaw","prevAvg.p AS prevAvgPitch","prevAvg.r AS prevAvgRoll")
+		lumbarReadingsIntermediate = lumbarReadings.selectExpr("readingID","readingTime","deviceID","metricTypeID","uomID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll")
 		assembler = VectorAssembler(
 					inputCols=["actualPitch", "actualYaw", "actualRoll"], # Must be in same order as what was used to train the model
 					outputCol="features")
@@ -36,32 +36,13 @@ def writeLumbarReadings(time, rdd):
 		predictions = loadedModel.predict(lumbarReadingsIntermediate.map(lambda x: x.features))
 		predictionsDF = lumbarReadingsIntermediate.map(lambda x: x.readingID).zip(predictions).toDF(["readingID","positionID"])
 		combinedDF = lumbarReadingsIntermediate.join(predictionsDF, lumbarReadingsIntermediate.readingID == predictionsDF.readingID).drop(predictionsDF.readingID)
+		
+		combinedDF = combinedDF.drop("features")
+		
 		combinedDF.show()
-		#predictedReading = lumb
-		#readingsColumnList = lumbarReadings.columns
-		#readingsColumnList.insert(len(readingsColumnList), "classification")		
-		
-		#labelsAndPredictions = lumbarReadingsIntermediate.
-		#predictions2 = lumbarReadingsIntermediate.map(lambda x: (x.deviceID, Row(getPrediction(x.fetures))))
-		#predictions2.toDF().show()
-		#lumbarReadingsRdd = lumbarReadingsIntermediate.rdd.map(tuple)
-		#print(lumbarReadingsRdd)
-		#lumbarReadingsRddFinal = lumbarReadingsRdd.zip(predictions)
-		#lumbarReadingsRddFinal.collect()
-		#print(lumbarReadingsRddFinal)
-		#print(lumbarReadingsRddFinal)
-		#lumbarReadingsDf = lumbarReadingsRddFinal.toDF()
-		#lumbarReadingsDf.show()
-		
-		#labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: x["uomID,deviceID"]).zip(predictions).toDF()
-		#labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: x).zip(predictions).toDF()
-		#labelsAndPredictions = lumbarReadingsIntermediate.map(lambda x: (x.deviceID,x.actualPitch)).zip(predictions).collect()#.toDF()
-		#print(labelsAndPredictions)
-		#labelsAndPredictions.show()
-		#labelsAndPredictions.show()
-		#loadedModel = RandomForestModel.load(sc, "../machine_learning/models/IoTBackBraceRandomForest.model")
 
-		#lumbarReadingFinal.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorReadings", properties=connectionProperties)
+
+		combinedDF.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorReadings", properties=connectionProperties)
 	#except:
 	#	pass
 	
@@ -72,7 +53,7 @@ def writeLumbarTrainingReadings(time, rddTraining):
 	sqlContext = SQLContext(rddTraining.context)
 	if rddTraining.isEmpty() == False:
 		lumbarTrainingReading = sqlContext.jsonRDD(rddTraining)
-		lumbarTrainingReadingFinal = lumbarTrainingReading.selectExpr("deviceID","readingTime","metricTypeID","uomID","positionID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll", "prevAvg.y AS prevAvgYaw","prevAvg.p AS prevAvgPitch","prevAvg.r AS prevAvgRoll")
+		lumbarTrainingReadingFinal = lumbarTrainingReading.selectExpr("deviceID","metricTypeID","uomID","positionID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll")
 		lumbarTrainingReadingFinal.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties)
 	#except:
 	#	pass
