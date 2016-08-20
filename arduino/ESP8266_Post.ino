@@ -14,7 +14,7 @@
 }
 
 void connectWifi() {
-  esp.println("AT+CWJAP=\"Tatooine\",\"Abby0u812\"");
+  esp.println("AT+CWJAP=\"YourSSID\",\"YourPassword\"");
   
   delay(4000);
   if(esp.find("OK")) {
