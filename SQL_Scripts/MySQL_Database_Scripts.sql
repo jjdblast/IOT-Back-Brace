@@ -20,7 +20,7 @@ SET time_zone = "+00:00";
 -- Database: `biosensor`
 --
 
-CREATE DATABASE IF NOT EXISTS biosnsor;
+CREATE DATABASE IF NOT EXISTS biosensor;
 
 USE biosensor;
 
