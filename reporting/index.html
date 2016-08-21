@@ -1,0 +1,154 @@
+﻿
+<!DOCTYPE html>
+<html lang="en" ng-app="myModule">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Dashboard Template for Bootstrap</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
+    <script type="text/javascript" src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="scripts/dashboard.js"></script>
+    <script src="scripts/pieChart.js"></script>
+    <script src="scripts/lineChart.js"></script>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel='stylesheet prefetch' href='http://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css'>
+    <!-- Custom styles for this template -->
+    <script src="scripts/highcharts-ng.js"></script>
+    <link href="css/dashboard.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body ng-controller="myController as vm">
+
+    <nav class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">IoT Back Brace Demo Dashboard</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Settings</a></li>
+                    <li><a href="#">Profile</a></li>
+                    <li><a href="#">Help</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+               <!--  <ul class="nav nav-sidebar">
+                    <li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+                    <li><a href="#">Reports</a></li>
+                    <li><a href="#">Analytics</a></li>
+                    <li><a href="#">Export</a></li>
+                </ul>
+               
+                <ul class="nav nav-sidebar">
+                    <li class="active">
+                        <a href="#"><i class="fa fa-bookmark-o"></i>Inbox</a>
+
+                    </li>
+                    <li>
+                        <a href="#"><i class="fa fa-envelope-o"></i> Sent Mail</a>
+                    </li>
+                    <li>
+                        <a href="#"><i class="fa fa-bookmark-o"></i> Important</a>
+                    </li>
+                    <li>
+                        <a href="#"><i class=" fa fa-external-link"></i> Drafts <span class="label label-info pull-right">30</span></a>
+                    </li>
+                    <li>
+                        <a href="#"><i class=" fa fa-trash-o"></i> Trash</a>
+                    </li>
+                </ul>-->
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <h1 class="page-header">Dashboard For {{vm.selectedDate.readingDate}} - {{vm.selectedFacility.facilityName}} - {{vm.selectedDevice.assignedTo}}</h1>
+                <div>
+                    <label>Date</label>
+                    <select name="date-filter"
+                            ng-model="vm.selectedDate"
+                            ng-options="availableDate.readingDate for availableDate in vm.availableDates"
+                            ng-change="vm.refresh()">
+                    </select>
+                    <label style="margin-left:20px;">Facility</label>
+                    <select name="facility-filter" 
+                            ng-model="vm.selectedFacility"
+                            ng-options="facility.facilityName for facility in vm.facilities"
+                            ng-change="vm.refresh()">
+                    </select>
+                </div>
+                <div class="row placeholders">
+                    <div class="col-xs-12 col-sm-6 placeholder text-center">
+                        <!--<hc-pie-chart title="Posture Summary" data="vm.pieData">Placeholder for pie chart</hc-pie-chart>-->
+                        <highchart id="chartPie" config="vm.pieOptions"></highchart>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 placeholder text-center">
+                       
+                        <!-- <hc-chart options="vm.bandedChartOptions" watch="vm.readingsSeries">Placeholder for generic chart</hc-chart>
+                        <hc-range-chart options="vm.rangeChartOptions">Placeholder for the range chart</hc-range-chart>-->
+                        <highchart id="chart1" config="vm.chartOptions"></highchart>
+                    </div>
+                </div>
+             
+                <h2 class="sub-header">Devices</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Facility</th>
+                                <th>Device ID</th>
+                                <th>Assigned To</th>
+                                <th>Last Reading</th>
+                                <th>% Stooping</th>
+                                <th>% Bent over</th>
+                                <th>% Standing</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="device in vm.summaryData | filter:(!!vm.filteredFacility || undefined) && {facilityName: vm.filteredFacility.facilityName}">
+                                <td>{{device.facilityName}}</td>
+                                <td><a href="#">{{device.deviceID}}</a></td>
+                                <td>{{device.assignedTo}}</td>
+                                <td>{{device.lastReading}}</td>
+                                <td>{{device.percentStooping | percentage}}</td>
+                                <td>{{device.percentBending | percentage}}</td>
+                                <td>{{device.percentUpright | percentage}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

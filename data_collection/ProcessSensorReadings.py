@@ -15,48 +15,45 @@ IMPORTANT:  MUST use class paths when using spark-submit
 $SPARK_HOME/bin/spark-submit --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.2,mysql:mysql-connector-java:5.1.28 ProcessSensorReadings.py
 """
 
-#loadedModel = RandomForestModel.load(sc, "../machine_learning/models/IoTBackBraceRandomForest.model")
-def getPrediction(features):
-	return loadedModel.predict(features)
 
 def writeLumbarReadings(time, rdd):
-	#try:
+	try:
 		# Convert RDDs of the words DStream to DataFrame and run SQL query
-	connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
-	sqlContext = SQLContext(rdd.context)
-	if rdd.isEmpty() == False:
-		lumbarReadings = sqlContext.jsonRDD(rdd)
-		lumbarReadingsIntermediate = lumbarReadings.selectExpr("readingID","readingTime","deviceID","metricTypeID","uomID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll")
-		assembler = VectorAssembler(
-					inputCols=["actualPitch", "actualYaw", "actualRoll"], # Must be in same order as what was used to train the model
-					outputCol="features")
-		lumbarReadingsIntermediate = assembler.transform(lumbarReadingsIntermediate)
+		connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
+		sqlContext = SQLContext(rdd.context)
+		if rdd.isEmpty() == False:
+			lumbarReadings = sqlContext.jsonRDD(rdd)
+			lumbarReadingsIntermediate = lumbarReadings.selectExpr("readingID","readingTime","deviceID","metricTypeID","uomID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll")
+			assembler = VectorAssembler(
+						inputCols=["actualPitch"], # Must be in same order as what was used to train the model.  Testing using only pitch since model has limited dataset.
+						outputCol="features")
+			lumbarReadingsIntermediate = assembler.transform(lumbarReadingsIntermediate)
 
-		
-		predictions = loadedModel.predict(lumbarReadingsIntermediate.map(lambda x: x.features))
-		predictionsDF = lumbarReadingsIntermediate.map(lambda x: x.readingID).zip(predictions).toDF(["readingID","positionID"])
-		combinedDF = lumbarReadingsIntermediate.join(predictionsDF, lumbarReadingsIntermediate.readingID == predictionsDF.readingID).drop(predictionsDF.readingID)
-		
-		combinedDF = combinedDF.drop("features")
-		
-		combinedDF.show()
+			
+			predictions = loadedModel.predict(lumbarReadingsIntermediate.map(lambda x: x.features))
+			predictionsDF = lumbarReadingsIntermediate.map(lambda x: x.readingID).zip(predictions).toDF(["readingID","positionID"])
+			combinedDF = lumbarReadingsIntermediate.join(predictionsDF, lumbarReadingsIntermediate.readingID == predictionsDF.readingID).drop(predictionsDF.readingID)
+			
+			combinedDF = combinedDF.drop("features")
+			
+			combinedDF.show()
 
 
-		combinedDF.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorReadings", properties=connectionProperties)
-	#except:
-	#	pass
+			combinedDF.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorReadings", properties=connectionProperties)
+	except:
+		pass
 	
 def writeLumbarTrainingReadings(time, rddTraining):
-	#try:
+	try:
 		# Convert RDDs of the words DStream to DataFrame and run SQL query
-	connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
-	sqlContext = SQLContext(rddTraining.context)
-	if rddTraining.isEmpty() == False:
-		lumbarTrainingReading = sqlContext.jsonRDD(rddTraining)
-		lumbarTrainingReadingFinal = lumbarTrainingReading.selectExpr("deviceID","metricTypeID","uomID","positionID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll")
-		lumbarTrainingReadingFinal.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties)
-	#except:
-	#	pass
+		connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
+		sqlContext = SQLContext(rddTraining.context)
+		if rddTraining.isEmpty() == False:
+			lumbarTrainingReading = sqlContext.jsonRDD(rddTraining)
+			lumbarTrainingReadingFinal = lumbarTrainingReading.selectExpr("deviceID","metricTypeID","uomID","positionID","actual.y AS actualYaw","actual.p AS actualPitch","actual.r AS actualRoll","setPoints.y AS setPointYaw","setPoints.p AS setPointPitch","setPoints.r AS setPointRoll")
+			lumbarTrainingReadingFinal.write.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties)
+	except:
+		pass
 		
 if __name__ == "__main__":
 	sc = SparkContext(appName="Process Lumbar Sensor Readings")
