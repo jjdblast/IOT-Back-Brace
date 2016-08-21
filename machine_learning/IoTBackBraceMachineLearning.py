@@ -18,11 +18,11 @@ sqlContext = SQLContext(sc)
 connectionProperties = MySQLConnection.getDBConnectionProps('/home/erik/mysql_credentials.txt')
 
 # Get training data from the database
-data = sqlContext.read.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties).selectExpr("deviceID","metricTypeID","uomID","positionID","actualPitch", "actualYaw", "actualRoll")
+data = sqlContext.read.jdbc("jdbc:mysql://localhost/biosensor", "SensorTrainingReadings", properties=connectionProperties).selectExpr("deviceID","metricTypeID","uomID","positionID","actualPitch")
 print "Train data size is {}".format(data.count())
 
 # Split data into training and test dataasets
-(trainingDataTable, testDataTable) = data.randomSplit([0.7, 0.3])
+(trainingDataTable, testDataTable) = data.randomSplit([0.9, 0.1])
 
 # The model requires labeldPoints which is a row with label and a vector of features.
 def featurize(t):
